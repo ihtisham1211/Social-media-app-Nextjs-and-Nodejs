@@ -34,4 +34,9 @@ yarn create next-app --example with-chakra-ui client
 
 yarn dev
 
-Video time ------------------>  3:46
+ioredis is better than redis
+
+Use uuid as token.
+store token in Cookies with redis.
+
+Video time ------------------>  5:10

@@ -6,7 +6,7 @@ import { ApolloServer } from "apollo-server-express";
 import { buildSchema } from "type-graphql";
 import { PostResolver } from "./resolvers/Post";
 import { UserResolver } from "./resolvers/User";
-import redis from "redis";
+import Redis from "ioredis";
 import session from "express-session";
 import connectRedis from "connect-redis";
 import cors from "cors";
@@ -16,7 +16,7 @@ const main = async () => {
   await orm.getMigrator().up(); // to auto run migrations
   const app = express();
   const RedisStore = connectRedis(session); //redis
-  const redisClient = redis.createClient(); //redis client
+  const redisClient = new Redis(); //redis client
 
   app.use(
     cors({
@@ -45,7 +45,7 @@ const main = async () => {
       resolvers: [PostResolver, UserResolver], // add Resolvers here.
       validate: false,
     }),
-    context: ({ req, res }) => ({ em: orm.em, req, res }),
+    context: ({ req, res }) => ({ em: orm.em, req, res, redisClient }),
   });
   apolloServer.applyMiddleware({
     app,

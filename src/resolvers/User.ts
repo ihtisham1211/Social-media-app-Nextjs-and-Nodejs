@@ -3,7 +3,6 @@ import {
   Arg,
   Ctx,
   Field,
-  InputType,
   Mutation,
   ObjectType,
   Query,
@@ -12,7 +11,11 @@ import {
 import { User } from "../entities/User";
 import argon2 from "argon2";
 import { SqlEntityManager } from "@mikro-orm/knex";
-import { COOKIE_NAME } from "../constants";
+import { COOKIE_NAME,FORGET_PASSWORD_PREFIX } from "../constants";
+import { UsernamePasswordInput } from "./UsernamePasswordInput";
+import { validateRegister } from "../utils/validateRegister";
+import { sendEmail } from "../utils/sendmails";
+import {v4} from "uuid"
 
 // Resolver is to start a resolver
 // Query is to get something for DB.
@@ -21,16 +24,6 @@ import { COOKIE_NAME } from "../constants";
 // Arg is to accept arguments.
 // inside Mutation and Query is the thing that the function will return.
 // InputTypes is used to create object type of input.
-
-@InputType()
-class UsernamePasswordInput {
-  @Field()
-  username: string;
-
-  @Field()
-  password: string;
-} // we cannot return this to GQL endpoint, we can only return ObjectTypes.
-
 @ObjectType()
 class FieldError {
   @Field()
@@ -65,22 +58,20 @@ export class UserResolver {
     @Arg("options", () => UsernamePasswordInput) options: UsernamePasswordInput,
     @Ctx() { em, req }: MyContext
   ): Promise<UserResponse> {
-    if (options.username.length < 2 || options.password.length < 2)
-      return {
-        errors: [
-          {
-            field: "username",
-            message: "Username and Password should not be less than 2",
-          },
-        ],
-      };
+
+    const errors = validateRegister(options);
+    if(errors){
+      return {errors};
+    }
 
     const hashPassword = await argon2.hash(options.password);
+
     let user;
     try {
      const result = await (em as SqlEntityManager).createQueryBuilder(User).getKnexQuery().insert({
         username: options.username,
         password: hashPassword,
+        email:options.email,
         created_at:new Date(),
         update_at:new Date()
       }).returning("*"); //query builder to build queries without ORM
@@ -88,7 +79,8 @@ export class UserResolver {
     } catch (error) {
       if (error.code === "23505") {
         return {
-          errors: [{ field: "username", message: "username already taken" }],
+          errors: [{ field: "username", message: "username or email already taken" },
+          { field: "email", message: "username or email already taken" }],
         };
       }
     }
@@ -99,16 +91,18 @@ export class UserResolver {
   // Login user
   @Mutation(() => UserResponse)
   async loginUser(
-    @Arg("options", () => UsernamePasswordInput) options: UsernamePasswordInput,
+    @Arg("usernameOrEmail") usernameOrEmail: string,
+    @Arg("password") password: string,
     @Ctx() { em, req }: MyContext
   ): Promise<UserResponse> {
-    const user = await em.findOne(User, { username: options.username });
+
+    const user = await em.findOne(User,usernameOrEmail.includes("@") ? { email: usernameOrEmail}:{ username: usernameOrEmail});
     if (!user)
       return {
-        errors: [{ field: "username", message: "could not find username" }],
+        errors: [{ field: "usernameOrEmail", message: "could not find username or email" }],
       };
 
-    const validate = await argon2.verify(user.password, options.password);
+    const validate = await argon2.verify(user.password, password);
 
     if (!validate)
       return {
@@ -135,4 +129,69 @@ export class UserResolver {
       resolve(true)
     }))
   }
+
+  @Mutation(()=> Boolean)
+   async forgotPassword(
+    @Ctx(){em,redisClient}:MyContext,
+    @Arg("email") email:string,
+  ){
+    const user = await em.findOne(User,{email}) 
+    if(!user){
+      return true;
+    }
+    const token = v4();
+    await redisClient.set(FORGET_PASSWORD_PREFIX + token, user.id,"ex",1000*60*60*24*3)
+    sendEmail(email,    
+      `<a href="http://localhost:3000/change-password/${token}">reset password</a>`
+    );
+    return true;
+  }
+
+  @Mutation(() => UserResponse)
+  async changePassword(
+    @Ctx() { redisClient, em, req }: MyContext,
+    @Arg("token") token: string,
+    @Arg("newPassword") newPassword: string,
+
+  ): Promise<UserResponse> {
+    if (newPassword.length < 2) {
+      return {
+        errors: [
+          {
+            field: "newPassword",
+            message: "length should not be less than 2",
+          }
+        ]
+      };
+    }
+    const key = FORGET_PASSWORD_PREFIX + token;
+    const userId = await redisClient.get(key)
+    if (!userId) {
+      return {
+        errors: [
+          {
+            field: "token",
+            message: "token expired",
+          }
+        ]
+      };
+    }
+    const user = await em.findOne(User, { id: parseInt(userId) });
+    if (!user) {
+      return {
+        errors: [{
+          field: "token",
+          message: "token expired",
+        }]
+      };
+    }
+    user.password = await argon2.hash(newPassword);
+    await em.persistAndFlush(user);
+    await redisClient.del(key);
+
+    // login user after change password
+    req.session.userId = user.id;
+    return { user };
+  }
 }
+ 

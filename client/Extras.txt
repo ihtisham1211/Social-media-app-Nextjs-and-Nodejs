@@ -1,0 +1,15 @@
+rh for typescript snipit. i installed them from ben awads github.
+yarn dev to run command.
+
+Box is container.
+its better to create a global container componet.
+
+urql is used instead of axios in graphQL end-points.
+
+warp urql provide to App to use hooks
+
+to get urql reponse with types we have to use graphQL code genrator.
+
+URQL dont support normalizing casha, so we have to use GraphCache. its called an exchange for URQL
+
+we can setup Cookies on nextjs server.
