@@ -1,4 +1,18 @@
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+
+### Stack and libraries used in this project.
+
+*  Typescript
+*  React
+*  GraphQL
+*  Type-GraphQL
+*  URQL (will change it Apollo)
+*  Nodejs
+*  Expressjs
+*  PostgreSQL
+*  MikroORM (Will change to TypeORM)
+*  Redis
+*  Nextjs
+
 
 ## Available Scripts
 
