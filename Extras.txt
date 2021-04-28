@@ -1,0 +1,37 @@
+To start development:
+    npm run watch
+    npm run dev
+
+To download Ts config file.
+- npx tsconfig.json 
+
+We are running the JS file and using watch to 
+    compiler TS to JS.
+
+Entities are models
+    we have to create migrations for Entities.
+
+To create Migrations.
+-> npx mikro-orm migration:create
+
+To add data into DB.
+  const post = orm.em.create(Post, { title: "my post" });
+  await orm.em.persistAndFlush(post);
+
+Apollo-server-express 
+    Is used to create GraphQL endpoints.
+
+Type-graphql
+    Is used to create schemes also knows as resolvers.
+    class-validator is also needed for Type-graphql (yarn add class-validator)
+
+We have to create objects to handle errors.
+
+req is used to acess sessions.
+
+NextJs with Chakra-ui:
+yarn create next-app --example with-chakra-ui client
+
+yarn dev
+
+Video time ------------------>  3:46
