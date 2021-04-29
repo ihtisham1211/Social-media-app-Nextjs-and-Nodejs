@@ -28,6 +28,9 @@ class UsernamePasswordInput {
   username: string;
 
   @Field()
+  email: string;
+
+  @Field()
   password: string;
 } // we cannot return this to GQL endpoint, we can only return ObjectTypes.
 
@@ -74,6 +77,24 @@ export class UserResolver {
           },
         ],
       };
+      if (options.password.length < 2)
+      return {
+        errors: [
+          {
+            field: "password",
+            message: "Password should not be less than 2",
+          },
+        ],
+      };
+      if (options.email.includes("@"))
+      return {
+        errors: [
+          {
+            field: "email",
+            message: "invalid email",
+          },
+        ],
+      };
 
     const hashPassword = await argon2.hash(options.password);
     let user;
@@ -81,6 +102,7 @@ export class UserResolver {
      const result = await (em as SqlEntityManager).createQueryBuilder(User).getKnexQuery().insert({
         username: options.username,
         password: hashPassword,
+        email:options.email,
         created_at:new Date(),
         update_at:new Date()
       }).returning("*"); //query builder to build queries without ORM
@@ -99,16 +121,18 @@ export class UserResolver {
   // Login user
   @Mutation(() => UserResponse)
   async loginUser(
-    @Arg("options", () => UsernamePasswordInput) options: UsernamePasswordInput,
+    @Arg("usernameOrEmail") usernameOrEmail: string,
+    @Arg("password") password: string
     @Ctx() { em, req }: MyContext
   ): Promise<UserResponse> {
-    const user = await em.findOne(User, { username: options.username });
+
+    const user = await em.findOne(User,usernameOrEmail.includes("@") ? { email: usernameOrEmail}:{ username: usernameOrEmail});
     if (!user)
       return {
-        errors: [{ field: "username", message: "could not find username" }],
+        errors: [{ field: "username or email", message: "could not find username or email" }],
       };
 
-    const validate = await argon2.verify(user.password, options.password);
+    const validate = await argon2.verify(user.password, password);
 
     if (!validate)
       return {
@@ -134,5 +158,13 @@ export class UserResolver {
       }
       resolve(true)
     }))
+  }
+
+  @Mutation(()=> Boolean)
+   async forgotPassword(
+    @Ctx(){em}:MyContext,
+    @Arg("email") email:string,
+  ){
+    const user = await em.findOne(User,{email}) 
   }
 }
