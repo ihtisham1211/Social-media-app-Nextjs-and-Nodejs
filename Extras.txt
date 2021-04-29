@@ -34,4 +34,4 @@ yarn create next-app --example with-chakra-ui client
 
 yarn dev
 
-Video time ------------------>  3:46
+Video time ------------------>  4:04
