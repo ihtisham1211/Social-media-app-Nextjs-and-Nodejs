@@ -28,6 +28,7 @@ export type Mutation = {
   registerUser: UserResponse;
   loginUser: UserResponse;
   logout: Scalars['Boolean'];
+  forgotPassword: Scalars['Boolean'];
 };
 
 
@@ -53,7 +54,13 @@ export type MutationRegisterUserArgs = {
 
 
 export type MutationLoginUserArgs = {
-  options: UsernamePasswordInput;
+  password: Scalars['String'];
+  usernameOrEmail: Scalars['String'];
+};
+
+
+export type MutationForgotPasswordArgs = {
+  email: Scalars['String'];
 };
 
 export type Post = {
@@ -79,9 +86,10 @@ export type QueryGetPostArgs = {
 export type User = {
   __typename?: 'User';
   id: Scalars['Float'];
-  username: Scalars['String'];
   createdAt: Scalars['String'];
   updateAt: Scalars['String'];
+  username: Scalars['String'];
+  email: Scalars['String'];
 };
 
 export type UserResponse = {
@@ -92,6 +100,7 @@ export type UserResponse = {
 
 export type UsernamePasswordInput = {
   username: Scalars['String'];
+  email: Scalars['String'];
   password: Scalars['String'];
 };
 
@@ -101,7 +110,8 @@ export type RegularUserFragment = (
 );
 
 export type LoginMutationVariables = Exact<{
-  options: UsernamePasswordInput;
+  usernameOrEmail: Scalars['String'];
+  password: Scalars['String'];
 }>;
 
 
@@ -128,8 +138,7 @@ export type LogoutMutation = (
 );
 
 export type RegisterMutationVariables = Exact<{
-  username: Scalars['String'];
-  password: Scalars['String'];
+  options: UsernamePasswordInput;
 }>;
 
 
@@ -176,8 +185,8 @@ export const RegularUserFragmentDoc = gql`
 }
     `;
 export const LoginDocument = gql`
-    mutation Login($options: UsernamePasswordInput!) {
-  loginUser(options: $options) {
+    mutation Login($usernameOrEmail: String!, $password: String!) {
+  loginUser(usernameOrEmail: $usernameOrEmail, password: $password) {
     errors {
       field
       message
@@ -202,8 +211,8 @@ export function useLogoutMutation() {
   return Urql.useMutation<LogoutMutation, LogoutMutationVariables>(LogoutDocument);
 };
 export const RegisterDocument = gql`
-    mutation Register($username: String!, $password: String!) {
-  registerUser(options: {username: $username, password: $password}) {
+    mutation Register($options: UsernamePasswordInput!) {
+  registerUser(options: $options) {
     errors {
       field
       message

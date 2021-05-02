@@ -1,5 +1,5 @@
 import { Box, Flex, Link } from "@chakra-ui/layout";
-import React from "react";
+import React, { useEffect } from "react";
 import NextLink from "next/link";
 import { useLogoutMutation, useMeQuery } from "../../generated/graphql";
 import { Button } from "@chakra-ui/button";
@@ -26,8 +26,6 @@ export const NavBar: React.FC<NavBarProps> = ({}) => {
   let body = null;
   //data is loading
   if (fetching) {
-    body = <>Loading data... </>;
-
     // user not logged in
   } else if (!data?.me) {
     body = (

@@ -34,4 +34,7 @@ yarn create next-app --example with-chakra-ui client
 
 yarn dev
 
-Video time ------------------>  4:25
+
+ioredis is better than redis
+
+Video time ------------------>  4:46
