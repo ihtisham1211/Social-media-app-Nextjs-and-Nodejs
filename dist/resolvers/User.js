@@ -90,7 +90,8 @@ let UserResolver = class UserResolver {
             catch (error) {
                 if (error.code === "23505") {
                     return {
-                        errors: [{ field: "usernameOrEmail", message: "username or email already taken" }],
+                        errors: [{ field: "username", message: "username or email already taken" },
+                            { field: "email", message: "username or email already taken" }],
                     };
                 }
             }
@@ -139,6 +140,46 @@ let UserResolver = class UserResolver {
             return true;
         });
     }
+    changePassword({ redisClient, em, req }, token, newPassword) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (newPassword.length < 2) {
+                return {
+                    errors: [
+                        {
+                            field: "newPassword",
+                            message: "length should not be less than 2",
+                        }
+                    ]
+                };
+            }
+            const key = constants_1.FORGET_PASSWORD_PREFIX + token;
+            const userId = yield redisClient.get(key);
+            if (!userId) {
+                return {
+                    errors: [
+                        {
+                            field: "token",
+                            message: "token expired",
+                        }
+                    ]
+                };
+            }
+            const user = yield em.findOne(User_1.User, { id: parseInt(userId) });
+            if (!user) {
+                return {
+                    errors: [{
+                            field: "token",
+                            message: "token expired",
+                        }]
+                };
+            }
+            user.password = yield argon2_1.default.hash(newPassword);
+            yield em.persistAndFlush(user);
+            yield redisClient.del(key);
+            req.session.userId = user.id;
+            return { user };
+        });
+    }
 };
 __decorate([
     type_graphql_1.Query(() => User_1.User, { nullable: true }),
@@ -179,6 +220,15 @@ __decorate([
     __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", Promise)
 ], UserResolver.prototype, "forgotPassword", null);
+__decorate([
+    type_graphql_1.Mutation(() => UserResponse),
+    __param(0, type_graphql_1.Ctx()),
+    __param(1, type_graphql_1.Arg("token")),
+    __param(2, type_graphql_1.Arg("newPassword")),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, String]),
+    __metadata("design:returntype", Promise)
+], UserResolver.prototype, "changePassword", null);
 UserResolver = __decorate([
     type_graphql_1.Resolver()
 ], UserResolver);

@@ -79,7 +79,8 @@ export class UserResolver {
     } catch (error) {
       if (error.code === "23505") {
         return {
-          errors: [{ field: "usernameOrEmail", message: "username or email already taken" }],
+          errors: [{ field: "username", message: "username or email already taken" },
+          { field: "email", message: "username or email already taken" }],
         };
       }
     }
@@ -144,6 +145,53 @@ export class UserResolver {
       `<a href="http://localhost:3000/change-password/${token}">reset password</a>`
     );
     return true;
+  }
+
+  @Mutation(() => UserResponse)
+  async changePassword(
+    @Ctx() { redisClient, em, req }: MyContext,
+    @Arg("token") token: string,
+    @Arg("newPassword") newPassword: string,
+
+  ): Promise<UserResponse> {
+    if (newPassword.length < 2) {
+      return {
+        errors: [
+          {
+            field: "newPassword",
+            message: "length should not be less than 2",
+          }
+        ]
+      };
+    }
+    const key = FORGET_PASSWORD_PREFIX + token;
+    const userId = await redisClient.get(key)
+    if (!userId) {
+      return {
+        errors: [
+          {
+            field: "token",
+            message: "token expired",
+          }
+        ]
+      };
+    }
+    const user = await em.findOne(User, { id: parseInt(userId) });
+    if (!user) {
+      return {
+        errors: [{
+          field: "token",
+          message: "token expired",
+        }]
+      };
+    }
+    user.password = await argon2.hash(newPassword);
+    await em.persistAndFlush(user);
+    await redisClient.del(key);
+
+    // login user after change password
+    req.session.userId = user.id;
+    return { user };
   }
 }
  
