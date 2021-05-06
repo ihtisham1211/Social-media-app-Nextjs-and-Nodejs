@@ -1,7 +1,8 @@
-import { Box, Button } from "@chakra-ui/react";
+import { Box, Button, Link } from "@chakra-ui/react";
 import { Formik, Form } from "formik";
 import { NextPage } from "next";
 import { withUrqlClient } from "next-urql";
+import Nextlink from "next/link";
 import { useRouter } from "next/router";
 import React, { useState } from "react";
 import InputField from "../../components/atom/InputField";
@@ -26,7 +27,7 @@ export const ChangePassword: NextPage<{ token: string }> = ({ token }) => {
         onSubmit={async (values, { setErrors }) => {
           const response = await changePassword({
             newPassword: values.newPassword,
-            token,
+            token:token as string,
           });
 
           if (response.data?.changePassword.errors) {
@@ -53,7 +54,15 @@ export const ChangePassword: NextPage<{ token: string }> = ({ token }) => {
                 type="password"
               />
             </Box>
-            <Box color={"red"}> {tokenError}</Box>
+              {tokenError && <Flex>
+                <Box mr={2} color={"red"}>{tokenError}</Box>
+                <Nextlink href={`/forget-password`}>
+                <Link>Click on the forget option again</Link>
+                </Nextlink>
+            </Flex>
+            }
+
+
             <Button
               mt={4}
               isLoading={isSubmitting}
@@ -71,10 +80,11 @@ export const ChangePassword: NextPage<{ token: string }> = ({ token }) => {
 
 // getInitialProps will et the props from the request or in this case
 // address bar and pass the props (token) in the original component.
+// getInitialProps is from urql client
 
 ChangePassword.getInitialProps = ({ query }) => {
   return {
-    token:query.token as string
+    token: query.token as string,
   };
 };
 
