@@ -1,9 +1,10 @@
-import { Entity, PrimaryKey, Property } from "@mikro-orm/core";
-import { Field, ObjectType } from "type-graphql";
+import { BaseEntity, Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { ObjectType, Field } from "type-graphql";
 
-// Mikro-orm
+
+// Type-ORM
 // Entity is used to define the table.
-// Property is used to define fields of the table.
+// Columns is used to define fields of the table.
 
 // GraphQL
 // ObjectTypes is used to return the whole table to GQL.
@@ -11,20 +12,20 @@ import { Field, ObjectType } from "type-graphql";
 
 @ObjectType()
 @Entity()
-export class Post {
+export class Post extends BaseEntity {
   @Field()
-  @PrimaryKey()
+  @PrimaryGeneratedColumn()
   id!: number;
 
   @Field()
-  @Property()
+  @Column()
   title!: string;
 
   @Field(() => String)
-  @Property({ type: "date" })
-  createdAt = new Date();
+  @CreateDateColumn()
+  createdAt: Date;
 
   @Field(() => String)
-  @Property({ type: "date", onUpdate: () => new Date() })
-  updateAt = new Date();
+  @UpdateDateColumn()
+  updateAt: Date;
 }
